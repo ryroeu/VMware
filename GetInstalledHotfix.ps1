@@ -1,63 +1,53 @@
-$script = @'
-  $hotfix = "KB4012598", "KB4012598", "KB4012598", "KB4012598", "KB4012212", "KB4012215", "KB4012212", "KB4012215", "KB4012213", "KB4012216", "KB4012214", "KB4012217", "KB4012213", "KB4012216", "KB4012606", "KB4013198", "KB4013429", "KB4013429"
-  $hotfixinfo = "No hotfix found!"
-  $fixes = Get-WmiObject -Class "win32_quickfixengineering" | Where-Object {$hotfix -contains $_.HotFixID} | Select-Object -ExpandProperty HotFixID
+# Get-WmiObject was deprecated in PowerShell 6 and removed in PowerShell 7+.
+# Use Get-CimInstance instead.
+# Update $HotfixIDs below with the KB numbers relevant to your environment.
 
-  if($fixes){
-    $hotfixinfo = "$($fixes -join ',') installed"
-  }
-  $hotfixinfo
-'@
-
-$accounts = @(
-   @{
-    User = 'administrator'
-    Pswd = 'pswd1'
-   },
-
-   @{
-    User = 'administrator'
-    Pswd = 'pswd2'
-   },
-
-   @{
-    User = 'administrator'
-    Pswd = 'pswd3'
-   },
-
-   @{
-    User = 'admin'
-    Pswd = 'pswd4'
-   }
+$HotfixIDs = @(
+    "KB5040442",
+    "KB5039894"
+    # Add additional KB IDs as needed
 )
 
-Get-ResourcePool -Name 'testpool' -PipelineVariable rp | ForEach-Object -Process {
-  Get-VM -Location $rp -PipelineVariable vm | ForEach-Object -Process {
-    $out = 'Login failed'
-    foreach ($user in $accounts) {
-      try {
-        $sInvoke = @{
-          VM = $vm
-          GuestUser = $user.User
-          GuestPassword = $user.Pswd
-          ScriptText = $script
-          ScriptType = 'Powershell'
-          ErrorAction = 'Stop'
-        }
-        $out = Invoke-VMScript @sInvoke | Select-Object -ExpandProperty ScriptOutput
-        break
-      } catch {
+$script = @"
+  `$hotfix = @('$($HotfixIDs -join "','")')
+  `$fixes  = Get-CimInstance -ClassName Win32_QuickFixEngineering |
+             Where-Object { `$hotfix -contains `$_.HotFixID } |
+             Select-Object -ExpandProperty HotFixID
+  if (`$fixes) { "`$(`$fixes -join ',') installed" }
+  else         { "No matching hotfixes found" }
+"@
 
-      }
+# Prompt for guest credentials — supports a single credential set.
+# If your environment has VMs with different local admin passwords, call
+# Get-Credential multiple times and build the $accounts array accordingly.
+$cred = Get-Credential -Message "Enter guest VM Administrator credentials"
+$accounts = @(
+    @{ User = $cred.UserName; Pswd = $cred.GetNetworkCredential().Password }
+)
+
+Get-ResourcePool -Name 'testpool' -PipelineVariable rp | ForEach-Object {
+    Get-VM -Location $rp -PipelineVariable vm | ForEach-Object {
+        $out = 'Login failed'
+        foreach ($account in $accounts) {
+            try {
+                $sInvoke = @{
+                    VM            = $vm
+                    GuestUser     = $account.User
+                    GuestPassword = $account.Pswd
+                    ScriptText    = $script
+                    ScriptType    = 'Powershell'
+                    ErrorAction   = 'Stop'
+                }
+                $out = Invoke-VMScript @sInvoke | Select-Object -ExpandProperty ScriptOutput
+                break
+            } catch {}
+        }
+        [PSCustomObject][ordered]@{
+            Name   = $vm.Name
+            OS     = $vm.Guest.OSFullName
+            IP     = $vm.Guest.IPAddress -join '|'
+            RP     = $rp.Name
+            Result = $out
+        }
     }
-    New-Object PSObject -Property (
-      [ordered]@{
-        Name = $vm.Name
-        OS = $vm.Guest.OSFullName
-        IP = $vm.Guest.IPAddress -join '|'
-        RP = $rp.Name
-        Result = $out
-      }
-    )
-  }
 } | Export-Csv -Path .\Output.csv -NoTypeInformation -NoClobber

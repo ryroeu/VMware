@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(for f:*)",
+      "Bash(do echo:*)",
+      "Read(//Users/ryan/GitHub/vmware/**)",
+      "Bash(done)"
+    ]
+  }
+}

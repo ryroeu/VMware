@@ -1,34 +1,13 @@
-#Install vCenter Server unattended
-$VCMedia = "D:\vCenter-Server"
-$SVC_USER = "WIN_VCENTER6\vCenter"
-$SVC_PASS = "VMware123"
-$FQDN = "MGMT-VC6.contoso.com"
-$VcIP = "10.144.99.16"
+# NOTE: The Windows-based vCenter Server installer (VMware-vCenter-Server.msi) was
+# discontinued after vCenter Server 6.7 (released 2018).
+#
+# Starting with vCenter Server 7.0, vCenter is only available as the
+# vCenter Server Appliance (VCSA) — a Linux-based virtual appliance deployed
+# via the vcsa-deploy CLI or the GUI installer included on the vCSA ISO.
+#
+# Use vCenterApplianceInstall.ps1 to deploy vCenter Server 8.x.
+#
+# Reference: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-vcenter-installation/
 
-#Database Info
-$TYPE = "external"
-$DSN = "vCenter"
-$USER = "vCenter"
-$PASS = "VMware123"
-
-$SSO_DOMAIN = "vsphere.local"
-$SSO_PASS = "VMware123!"
-$SSO_SITE ="MY_SITE"
-
-# Install vCenter
-Write-Host "Installing vCenter"
-$vars = "/i `"$VCmedia\VMware-vCenter-Server.msi`" "
-$vars += "/l*e `"c:\temp\vCenterinstall.txt`" /qr "
-$vars += "LAUNCHED_BY_EXE=0 FQDN=`"$FQDN`" "
-$vars += "INSTALL_TYPE=embedded "
-$vars += "DB_TYPE=$Type DB_DSN=`"$DSN`" "
-$vars += "DB_USER=`"$USER`" "
-$vars += "DB_PASSWORD=`"$PASS`" "
-$vars += "INFRA_NODE_ADDRESS=`"$vCIP`" "
-$vars += "VC_SVC_USER=`"$SVC_USER`" "
-$vars += "VC_SVC_PASSWORD=`"$SVC_PASS`" "
-$vars += "SSO_DOMAIN=`"$SSO_DOMAIN`" "
-$vars += "SSO_PASSWORD=`"$SSO_PASS`" "
-$vars += "SSO_SITENAME=`"$SSO_SITE`" "
-
-Start-Process msiexec -ArgumentList $vars –Wait
+Write-Warning "The Windows-based vCenter installer has not been available since vCenter 7.0 (2020)."
+Write-Host    "Deploy vCenter Server Appliance (VCSA) using vCenterApplianceInstall.ps1"

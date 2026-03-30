@@ -7,8 +7,7 @@ $newMask = "255.255.255.0"
 $newGateway = "10.10.10.1"
 $newDNS = "10.10.10.9"
 #Guest Credentials - Must have required permissions to change IP address
-$GuestUserName = "domain\user"
-$GuestPassword = "Password"
+$GuestCred = Get-Credential -Message "Enter guest VM credentials (must have permission to change IP)"
 #VM Inventory names to match
 $matchVMs = "NameofVM"
 ##############NO CHANGES BEYOND THIS POINT##############
@@ -19,7 +18,7 @@ foreach ($vm in $VMs){
    Write-Host "Working on $vm"
    #PowerShell used by Invoke-VMScript to retrieve current IP Address
    $ipscript = '(Get-NetIPAddress | where-object {$_.IPAddress -match "' + $origIp + '" -and $_.AddressFamily -eq "IPv4"}).IPAddress'
-   $currentIp = invoke-vmscript -ScriptText $ipscript -ScriptType PowerShell -VM $vm -GuestUser $GuestUserName -GuestPassword $GuestPassword
+   $currentIp = invoke-vmscript -ScriptText $ipscript -ScriptType PowerShell -VM $vm -GuestCredential $GuestCred
    $currentIp = $currentIp -replace "`t|`n|`r",""
    write-host "$currentIp is the current IP Address"
    #Adjust Original IP to Replacement IP
@@ -28,20 +27,20 @@ foreach ($vm in $VMs){
    Write-Host "Changing IP to $changeIp"
    #Get the Interface Name (Alias)
    $aliasscript = '(Get-NetIPAddress | where-object {$_.IPAddress -match "' + $origIp + '" -and $_.AddressFamily -eq "IPv4"}).InterfaceAlias'
-   $getIntAlias = invoke-vmscript -ScriptText $aliasscript -ScriptType PowerShell -VM $vm -GuestUser $GuestUserName -GuestPassword $GuestPassword
+   $getIntAlias = invoke-vmscript -ScriptText $aliasscript -ScriptType PowerShell -VM $vm -GuestCredential $GuestCred
    $getIntAlias = $getIntAlias -replace "`t|`n|`r",""
    write-host "The interface name is $getIntAlias"
    #Change the IP Address
    $changingIp = '%WINDIR%\system32\netsh.exe interface ipv4 set address name="' + $getIntAlias + '" source=static address=' + $changeIp + ' mask=' + $newMask + ' gateway=' + $newGateway + ' gwmetric=1 store=persistent'
    Write-host "Changing IP Address of $vm interface $getIntAlias from $currentIp to $changeIp"
-   Invoke-VMScript -ScriptText $changingIp -ScriptType bat -VM $vm -GuestUser $GuestUserName -GuestPassword $GuestPassword
+   Invoke-VMScript -ScriptText $changingIp -ScriptType bat -VM $vm -GuestCredential $GuestCred
    #Change DNS Servers
    Write-Host "Setting DNS Server to $newDNS"
    $changeDNS = '%WINDIR%\system32\netsh.exe interface ipv4 set dnsservers name="' + $getIntAlias + '" source=static address=' + $newDNS + ' register=primary'
-   Invoke-VMScript -ScriptText $changeDNS -ScriptType bat -VM $vm -GuestUser $GuestUserName -GuestPassword $GuestPassword
+   Invoke-VMScript -ScriptText $changeDNS -ScriptType bat -VM $vm -GuestCredential $GuestCred
    #Register with DNS
    Write-Host "Registering with DNS"
    $registeringDNS = '%WINDIR%\System32\ipconfig /registerdns'
-   Invoke-VMScript -ScriptText $registeringDNS -ScriptType bat -VM $vm -GuestUser $GuestUserName -GuestPassword $GuestPassword
+   Invoke-VMScript -ScriptText $registeringDNS -ScriptType bat -VM $vm -GuestCredential $GuestCred
    Write-Host "Finished with $vm"
 }

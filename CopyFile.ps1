@@ -1,6 +1,8 @@
-$VMs = Import-Csv .\VMList.csv
+$VMs       = Import-Csv .\VMList.csv
+$GuestCred = Get-Credential -Message "Enter guest VM credentials"
+
 function Copy-File {
-    foreach ($VM in $VMs){
-        Get-Item "C:\Directory\*" | Copy-VMGuestFile -Destination 'C:\Directory\' -VM $vm -LocalToGuest -GuestUser "domain\user" -GuestPassword Password -Confirm:$false
+    foreach ($VM in $VMs) {
+        Get-Item "C:\Directory\*" | Copy-VMGuestFile -Destination 'C:\Directory\' -VM $VM -LocalToGuest -GuestCredential $GuestCred -Confirm:$false
     }
 }

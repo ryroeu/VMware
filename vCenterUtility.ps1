@@ -20,32 +20,33 @@ $GetSvcOnVM = "wmic service get name,startname | sort"
 $GetDomainSvc = "wmic service get startname | find ""svc startname"" | sort"
 $FWStatus = "netsh advfirewall show allprofiles state"
 $FWDisable = "netsh advfirewall set allprofiles state off"
-$ManualMoveScript = '$DomainUser = "Domain\Username";
-                $DomainPWord = ConvertTo-SecureString -String "Password" -AsPlainText -Force;
-                $DomainCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $DomainUser, $DomainPWord;
-                Add-Computer -DomainName "domain.com" -Credential $DomainCredential;
-                Start-Sleep -Seconds 20;
-                Shutdown /r /t 0'
+# $ManualMoveScript is built after ADMT credentials are collected below
 
 
 <# DOMAIN LOGIN VARIABLES #>
 Write-Host "Let's get started! Please enter your Domain credentials." -ForegroundColor Magenta -BackgroundColor Black
 $GuestUser = Read-Host "Enter your Domain UserName (Domain\UserName): "
 $GuestPasswordSec = Read-Host "Enter your Domain Password: " -AsSecureString
-$GuestPassword = ConvertFrom-SecureString -SecureString $GuestPasswordSec -AsPlainText
 $GuestCreds = New-Object System.Management.Automation.PSCredential ($GuestUser, $GuestPasswordSec)
 <# ADMT LOGIN VARIABLES #>
 Write-Host "Now let's get your ADMT credentials." -ForegroundColor Magenta -BackgroundColor Black
 $ADMTAccount = Read-Host "Enter your ADMT account UserName (Domain\UserName): "
 $ADMTPasswordSec = Read-Host "Enter your ADMT account Password: " -AsSecureString
-$ADMTPassword = ConvertFrom-SecureString -SecureString $ADMTPasswordSec -AsPlainText
 $ADMTCreds = New-Object System.Management.Automation.PSCredential ($ADMTAccount, $ADMTPasswordSec)
+$ManualMoveScript = @"
+`$DomainUser = '$ADMTAccount'
+`$DomainPWord = ConvertTo-SecureString -String '$($ADMTCreds.GetNetworkCredential().Password)' -AsPlainText -Force
+`$DomainCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList `$DomainUser, `$DomainPWord
+Add-Computer -DomainName '$Domain' -Credential `$DomainCredential
+Start-Sleep -Seconds 20
+Shutdown /r /t 0
+"@
 <# VCENTER LOGIN VARIABLES #>
 Write-Host "Last step! Enter your vCenter password." -ForegroundColor Magenta -BackgroundColor Black
 $vCenter = "10.10.10.20"
 $vCenterUser = Read-Host "Enter your vCenter UserName (Domain\UserName): "
 $vCenterPasswordSec = Read-Host "Enter your vCenter Password: " -AsSecureString
-$vCenterPassword = ConvertFrom-SecureString -SecureString $vCenterPasswordSec -AsPlainText
+$vCenterCreds = New-Object System.Management.Automation.PSCredential ($vCenterUser, $vCenterPasswordSec)
 
 
 <# FUNCTIONS #>
@@ -157,7 +158,7 @@ function Show-Menu {
 
 <# VCENTER AND LIST VERIFICATION #>
 function Connect-2vCenter {
-    Connect-VIServer -Server $vCenter -User $vCenterUser -Password $vCenterPassword
+    Connect-VIServer -Server $vCenter -Credential $vCenterCreds
 }
 
 function Get-LocationOfVMs {
@@ -259,33 +260,32 @@ function Get-MonthlyCPURAM4All {
 function Get-UsersInAdminGroup {
     $TargetVM = Read-Host -Prompt "Enter the name of the VM: "
     Write-Host "Getting users in Administrators group on $TargetVM" -ForegroundColor DarkGreen -BackgroundColor Black
-    $SO = Invoke-VMScript -VM ($TargetVM) -GuestUser $GuestUser -GuestPassword $GuestPassword -ScriptType Bat -ScriptText $UsersInGroup
+    $SO = Invoke-VMScript -VM ($TargetVM) -GuestCredential $GuestCreds -ScriptType Bat -ScriptText $UsersInGroup
     $SO.ScriptOutput
 }
 
 function Get-UsersInAdminGroupAll {
     Write-Host "Getting users in Administrators group on $VM" -ForegroundColor DarkGreen -BackgroundColor Black
-    $SO = Invoke-VMScript -VM ($VM) -GuestUser $GuestUser -GuestPassword $GuestPassword -ScriptType Bat -ScriptText $UsersInGroup
+    $SO = Invoke-VMScript -VM ($VM) -GuestCredential $GuestCreds -ScriptType Bat -ScriptText $UsersInGroup
     $SO.ScriptOutput
 }
 
 function Add-Account2Group {
     $TargetVM = Read-Host -Prompt "Enter the name of the VM: "
     Write-Host "Adding SSIADMT to Administrators group on $TargetVM" -ForegroundColor Blue -BackgroundColor Black
-    $SO = Invoke-VMScript -VM ($TargetVM) -GuestUser $GuestUser -GuestPassword $GuestPassword -ScriptType Bat -ScriptText $Add2GroupCD
+    $SO = Invoke-VMScript -VM ($TargetVM) -GuestCredential $GuestCreds -ScriptType Bat -ScriptText $Add2GroupCD
     $SO.ScriptOutput
 }
 
 function Add-Account2GroupAll {
     Write-Host "Adding SSIADMT to Administrators group on $VM" -ForegroundColor Blue -BackgroundColor Black
-    $SO = Invoke-VMScript -VM ($VM) -GuestUser $GuestUser -GuestPassword $GuestPassword -ScriptType Bat -ScriptText $Add2GroupCD
+    $SO = Invoke-VMScript -VM ($VM) -GuestCredential $GuestCreds -ScriptType Bat -ScriptText $Add2GroupCD
     $SO.ScriptOutput
 }
 
 function Test-ADAuthentication {
-    param ($ADMTAccount,[SecureString] $ADMTPassword)
     Write-Host "Testing ADMT authentication on $VM" -ForegroundColor DarkGreen -BackgroundColor Black
-    $null -ne (New-Object directoryservices.directoryentry "",$ADMTAccount,$ADMTPassword).PSBase.Name
+    $null -ne (New-Object directoryservices.directoryentry "", $ADMTCreds.UserName, $ADMTCreds.GetNetworkCredential().Password).PSBase.Name
 }
 
 <# IP AND DNS ADDRESSES #>
@@ -302,48 +302,48 @@ function Get-IPAddress4VMAll {
 function Get-DomainOnVM {
     $TargetVM = Read-Host -Prompt "Enter the name of the VM: "
     Write-Host "Getting Domain of $TargetVM" -ForegroundColor DarkGreen -BackgroundColor Black
-    $SO = Invoke-VMScript -VM ($TargetVM) -GuestUser $GuestUser -GuestPassword $GuestPassword -ScriptType Powershell -ScriptText $GetDomainOnVM
+    $SO = Invoke-VMScript -VM ($TargetVM) -GuestCredential $GuestCreds -ScriptType Powershell -ScriptText $GetDomainOnVM
     $SO.ScriptOutput
 }
 
 function Get-DomainOnVMAll {
     Write-Host "Getting Domain of $VM" -ForegroundColor DarkGreen -BackgroundColor Black
-    $SO = Invoke-VMScript -VM ($VM) -GuestUser $GuestUser -GuestPassword $GuestPassword -ScriptType Powershell -ScriptText $GetDomainOnVM
+    $SO = Invoke-VMScript -VM ($VM) -GuestCredential $GuestCreds -ScriptType Powershell -ScriptText $GetDomainOnVM
     $SO.ScriptOutput
 }
 
 function Get-DNSServerAddress {
     $TargetVM = Read-Host -Prompt "Enter the name of the VM: "
     Write-Host "Getting DNS Server Address on $TargetVM" -ForegroundColor DarkGreen -BackgroundColor Black
-    $SO = Invoke-VMScript -VM ($TargetVM) -GuestUser $GuestUser -GuestPassword $GuestPassword -ScriptType Bat -ScriptText $GetDNSAddress
+    $SO = Invoke-VMScript -VM ($TargetVM) -GuestCredential $GuestCreds -ScriptType Bat -ScriptText $GetDNSAddress
     $SO.ScriptOutput
 }
 
 function Get-DNSServerAddressAll {
     Write-Host "Getting DNS Server Address on $VM" -ForegroundColor DarkGreen -BackgroundColor Black
-    $SO = Invoke-VMScript -VM ($VM) -GuestUser $GuestUser -GuestPassword $GuestPassword -ScriptType Bat -ScriptText $GetDNSAddress
+    $SO = Invoke-VMScript -VM ($VM) -GuestCredential $GuestCreds -ScriptType Bat -ScriptText $GetDNSAddress
     $SO.ScriptOutput
 }
 
 function Set-DNSServerAddress {
     $TargetVM = Read-Host -Prompt "Enter the name of the VM: "
     Write-Host "Setting DNS Server Address 1 on $TargetVM..." -ForegroundColor Blue -BackgroundColor Black
-    $SO1 = Invoke-VMScript -VM ($TargetVM) -GuestUser $GuestUser -GuestPassword $GuestPassword -ScriptType Bat -ScriptText $SetDNSAddress1
+    $SO1 = Invoke-VMScript -VM ($TargetVM) -GuestCredential $GuestCreds -ScriptType Bat -ScriptText $SetDNSAddress1
     $SO1.ScriptOutput
     Write-Host "DNS Server Address 1 on $TargetVM has been set." -ForegroundColor DarkGreen -BackgroundColor Black
     Write-Host "Setting DNS Server Address 2 on $TargetVM..." -ForegroundColor Blue -BackgroundColor Black
-    $SO2 = Invoke-VMScript -VM ($TargetVM) -GuestUser $GuestUser -GuestPassword $GuestPassword -ScriptType Bat -ScriptText $SetDNSAddress2
+    $SO2 = Invoke-VMScript -VM ($TargetVM) -GuestCredential $GuestCreds -ScriptType Bat -ScriptText $SetDNSAddress2
     $SO2.ScriptOutput
     Write-Host "DNS Server Address 2 on $TargetVM has been set." -ForegroundColor DarkGreen -BackgroundColor Black
 }
 
 function Set-DNSServerAddressAll {
     Write-Host "Setting DNS Server Address 1 on $VM..." -ForegroundColor Blue -BackgroundColor Black
-    $SO1 = Invoke-VMScript -VM ($VM) -GuestUser $GuestUser -GuestPassword $GuestPassword -ScriptType Bat -ScriptText $SetDNSAddress1
+    $SO1 = Invoke-VMScript -VM ($VM) -GuestCredential $GuestCreds -ScriptType Bat -ScriptText $SetDNSAddress1
     $SO1.ScriptOutput
     Write-Host "DNS Server Address 1 on $VM has been set." -ForegroundColor DarkGreen -BackgroundColor Black
     Write-Host "Setting DNS Server Address 2 on $VM..." -ForegroundColor Blue -BackgroundColor Black
-    $SO2 = Invoke-VMScript -VM ($VM) -GuestUser $GuestUser -GuestPassword $GuestPassword -ScriptType Bat -ScriptText $SetDNSAddress2
+    $SO2 = Invoke-VMScript -VM ($VM) -GuestCredential $GuestCreds -ScriptType Bat -ScriptText $SetDNSAddress2
     $SO2.ScriptOutput
     Write-Host "DNS Server Address 2 on $VM has been set." -ForegroundColor DarkGreen -BackgroundColor Black
 }
@@ -351,13 +351,13 @@ function Set-DNSServerAddressAll {
 function Invoke-RegisterDNS {
     $TargetVM = Read-Host -Prompt "Enter the name of the VM: "
     Write-Host "Registering DNS on $TargetVM" -ForegroundColor DarkGreen -BackgroundColor Black
-    $SO = Invoke-VMScript -VM ($TargetVM) -GuestUser $GuestUser -GuestPassword $GuestPassword -ScriptType Bat -ScriptText $RegisterDNS
+    $SO = Invoke-VMScript -VM ($TargetVM) -GuestCredential $GuestCreds -ScriptType Bat -ScriptText $RegisterDNS
     $SO.ScriptOutput
 }
 
 function Invoke-RegisterDNSAll {
     Write-Host "Registering DNS on $VM" -ForegroundColor DarkGreen -BackgroundColor Black
-    $SO = Invoke-VMScript -VM ($VM) -GuestUser $GuestUser -GuestPassword $GuestPassword -ScriptType Bat -ScriptText $RegisterDNS
+    $SO = Invoke-VMScript -VM ($VM) -GuestCredential $GuestCreds -ScriptType Bat -ScriptText $RegisterDNS
     $SO.ScriptOutput
 }
 
@@ -365,20 +365,20 @@ function Invoke-RegisterDNSAll {
 function Get-ServicesOnVM {
     $TargetVM = Read-Host -Prompt "Enter the name of the VM: "
     Write-Host "Getting List of all Services on $TargetVM"
-    $SO = Invoke-VMScript -VM ($TargetVM) -GuestUser $GuestUser -GuestPassword $GuestPassword -ScriptType Bat -ScriptText $GetSvcOnVM
+    $SO = Invoke-VMScript -VM ($TargetVM) -GuestCredential $GuestCreds -ScriptType Bat -ScriptText $GetSvcOnVM
     $SO.ScriptOutput
 }
 
 function Get-ServicesAll {
     Write-Host "Getting List of all Services on $VM"
-    $SO = Invoke-VMScript -VM ($VM) -GuestUser $GuestUser -GuestPassword $GuestPassword -ScriptType Bat -ScriptText $GetSvcOnVM
+    $SO = Invoke-VMScript -VM ($VM) -GuestCredential $GuestCreds -ScriptType Bat -ScriptText $GetSvcOnVM
     $SO.ScriptOutput
 }
 
 function Get-SpecificSVC {
     $TargetVM = Read-Host -Prompt "Enter the name of the VM: "
     Write-Host "Finding Service on $TargetVM"
-    $SO1 = Invoke-VMScript -VM ($TargetVM) -GuestUser $GuestUser -GuestPassword $GuestPassword -ScriptType Bat -ScriptText $GetDomainSvc
+    $SO1 = Invoke-VMScript -VM ($TargetVM) -GuestCredential $GuestCreds -ScriptType Bat -ScriptText $GetDomainSvc
     if ($SO1.ScriptOutput -like "*biz*") {
         Write-Host "Service Found on $TargetVM" -ForegroundColor Red -BackgroundColor Black
         $SO1.ScriptOutput
@@ -389,7 +389,7 @@ function Get-SpecificSVC {
 
 function Get-SpecificSVCAll {
     Write-Host "Finding Service on $VM"
-    $SO1 = Invoke-VMScript -VM ($VM) -GuestUser $GuestUser -GuestPassword $GuestPassword -ScriptType Bat -ScriptText $GetDomainSvc
+    $SO1 = Invoke-VMScript -VM ($VM) -GuestCredential $GuestCreds -ScriptType Bat -ScriptText $GetDomainSvc
     if ($SO1.ScriptOutput -like "*biz*") {
         Write-Host "Service Found on $VM" -ForegroundColor Red -BackgroundColor Black
         $SO1.ScriptOutput
@@ -437,19 +437,19 @@ function Get-PingStatusAdminAll {
 function Test-ReachDomain {
     $TargetVM = Read-Host -Prompt "Enter the name of the VM: "
     Write-Host "Testing BIZ DC Reachability from $TargetVM" -ForegroundColor DarkGreen -BackgroundColor Black
-    $SO = Invoke-VMScript -VM ($TargetVM) -GuestUser $GuestUser -GuestPassword $GuestPassword -ScriptType Powershell -ScriptText $PingDC
+    $SO = Invoke-VMScript -VM ($TargetVM) -GuestCredential $GuestCreds -ScriptType Powershell -ScriptText $PingDC
     $SO.ScriptOutput
 }
 
 function Test-ReachDomainAll {
     Write-Host "Testing BIZ DC Reachability from $VM" -ForegroundColor DarkGreen -BackgroundColor Black
-    $SO = Invoke-VMScript -VM ($VM) -GuestUser $GuestUser -GuestPassword $GuestPassword -ScriptType Powershell -ScriptText $PingDC
+    $SO = Invoke-VMScript -VM ($VM) -GuestCredential $GuestCreds -ScriptType Powershell -ScriptText $PingDC
     $SO.ScriptOutput
 }
 
 function Test-ReachDomainDCIP {
     Write-Host "Testing BIZ DC IP Reachability from $VM" -ForegroundColor DarkGreen -BackgroundColor Black
-    $SO = Invoke-VMScript -VM ($VM) -GuestUser $GuestUser -GuestPassword $GuestPassword -ScriptType Powershell -ScriptText $PingDCIP
+    $SO = Invoke-VMScript -VM ($VM) -GuestCredential $GuestCreds -ScriptType Powershell -ScriptText $PingDCIP
     $SO.ScriptOutput
 }
 
@@ -574,26 +574,26 @@ function Test-ADMTPortsAll {
 function Get-WinFirewallStatus {
     $TargetVM = Read-Host -Prompt "Enter the name of the VM: "
     Write-Host "Getting Firewall Status on $TargetVM" -ForegroundColor DarkGreen -BackgroundColor Black
-    $SO = Invoke-VMScript -VM ($TargetVM) -GuestUser $GuestUser -GuestPassword $GuestPasswordSec -ScriptType Bat -ScriptText $FWStatus
+    $SO = Invoke-VMScript -VM ($TargetVM) -GuestCredential $GuestCredsSec -ScriptType Bat -ScriptText $FWStatus
     $SO.ScriptOutput
 }
 
 function Get-WinFirewallStatusAll {
     Write-Host "Getting Firewall Status on $VM" -ForegroundColor DarkGreen -BackgroundColor Black
-    $SO = Invoke-VMScript -VM ($VM) -GuestUser $GuestUser -GuestPassword $GuestPasswordSec -ScriptType Bat -ScriptText $FWStatus
+    $SO = Invoke-VMScript -VM ($VM) -GuestCredential $GuestCredsSec -ScriptType Bat -ScriptText $FWStatus
     $SO.ScriptOutput
 }
 
 function Set-WinFirewallOff {
     $TargetVM = Read-Host -Prompt "Enter the name of the VM: "
     Write-Host "Disabling Windows Firewall on $TargetVM" -ForegroundColor Blue -BackgroundColor Black
-    $SO = Invoke-VMScript -VM ($TargetVM) -GuestUser $GuestUser -GuestPassword $GuestPassword -ScriptType Bat -ScriptText $FWDisable
+    $SO = Invoke-VMScript -VM ($TargetVM) -GuestCredential $GuestCreds -ScriptType Bat -ScriptText $FWDisable
     $SO.ScriptOutput
 }
 
 function Set-WinFirewallOffAll {
     Write-Host "Disabling Windows Firewall on $VM" -ForegroundColor Blue -BackgroundColor Black
-    $SO = Invoke-VMScript -VM ($VM) -GuestUser $GuestUser -GuestPassword $GuestPassword -ScriptType Bat -ScriptText $FWDisable
+    $SO = Invoke-VMScript -VM ($VM) -GuestCredential $GuestCreds -ScriptType Bat -ScriptText $FWDisable
     $SO.ScriptOutput
 }
 
@@ -710,14 +710,14 @@ function Remove-AllSnapshots4All {
 function Add-VM2NewDomain {
     $TargetVM = Read-Host -Prompt "Enter the name of the VM: "
     Write-Host "Moving $TargetVM to new domain..." -ForegroundColor Blue -BackgroundColor Black
-    $SO = Invoke-VMScript -VM ($TargetVM) -GuestUser $ADMTAccount -GuestPassword $ADMTPassword -ScriptType Powershell -ScriptText $ManualMoveScript
+    $SO = Invoke-VMScript -VM ($TargetVM) -GuestCredential $ADMTCreds -ScriptType Powershell -ScriptText $ManualMoveScript
     $SO.ScriptOutput
     Write-Host "Done!" -ForegroundColor Green -BackgroundColor Black
 }
 
 function Add-VM2NewDomainAll {
     Write-Host "Moving $VM to new domain..." -ForegroundColor Blue -BackgroundColor Black
-    $SO = Invoke-VMScript -VM ($VM) -GuestUser $ADMTAccount -GuestPassword $ADMTPassword -ScriptType Powershell -ScriptText $ManualMoveScript
+    $SO = Invoke-VMScript -VM ($VM) -GuestCredential $ADMTCreds -ScriptType Powershell -ScriptText $ManualMoveScript
     $SO.ScriptOutput
     Write-Host "Done!" -ForegroundColor Green -BackgroundColor Black
 }

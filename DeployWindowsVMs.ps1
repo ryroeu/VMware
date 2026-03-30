@@ -1,4 +1,4 @@
-# Deploy Windows Server 2008 or higher in vCenter
+# Deploy Windows Server 2019/2022 in vCenter
 #### USER DEFINED VARIABLES ############################################################################################
 $Domain = ""              #AD Domain to join
 $vCenterInstance = ""     #vCenter to deploy VM
@@ -98,16 +98,16 @@ If (-not (Test-IP $IP)){
 }
 $JoinDomainYN = Read-Host "Join Domain $Domain (Y/N)"
 ### READ CREDENTIALS ########################################################################################################
-Get-Content credentials.txt | Foreach-Object{
-   $var = $_.Split('=')
-   Set-Variable -Name $var[0].trim('" ') -Value $var[1].trim('" ')
+$VMLocalCredential = Get-Credential -UserName "$Hostname\Administrator" -Message "Enter local Administrator credentials for the deployed VM"
+$vCenterCredential = Get-Credential -Message "Enter vCenter credentials"
+if ($JoinDomainYN.ToUpper() -eq "Y") {
+    $DomainCredential = Get-Credential -Message "Enter domain join credentials for $Domain"
+    $DomainAdmin         = $DomainCredential.UserName
+    $DomainAdminPassword = $DomainCredential.GetNetworkCredential().Password
 }
-$VMLocalUser = "$Hostname\$LocalUser"
-$VMLocalPWord = ConvertTo-SecureString -String $LocalPassword -AsPlainText -Force
-$VMLocalCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $VMLocalUser, $VMLocalPWord
 ### CONNECT TO VCENTER ##############################################################################################
-Get-Module -ListAvailable VMware* | Import-Module | Out-Null
-Connect-VIServer -Server $vCenterInstance -User $vCenterUser -Password $vCenterPass -WarningAction SilentlyContinue
+Import-Module VMware.PowerCLI -ErrorAction Stop
+Connect-VIServer -Server $vCenterInstance -Credential $vCenterCredential -WarningAction SilentlyContinue
 $SourceVMTemplate = Get-Template -Name $VMTemplate
 $SourceCustomSpec = Get-OSCustomizationSpec -Name $CustomSpec
 ### DEFINE POWERSHELL SCRIPTS TO RUN IN VM AFTER DEPLOYMENT ############################################################################################################
