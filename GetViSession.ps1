@@ -1,4 +1,4 @@
-Function Get-ViSession {
+﻿Function Get-ViSession {
     <#
     .SYNOPSIS
     Lists vCenter Sessions.
@@ -21,7 +21,7 @@ Function Get-ViSession {
         }
         If ($_.Key -eq $SessionMgr.CurrentSession.Key) {
             $Session | Add-Member -MemberType NoteProperty -Name Status -Value “Current Session”
-        } 
+        }
         Else {
             $Session | Add-Member -MemberType NoteProperty -Name Status -Value “Idle”
         }

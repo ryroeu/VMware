@@ -1,4 +1,4 @@
-<# DOMAIN MIGRATION UTILITY - VERSION 1.4 #>
+﻿<# DOMAIN MIGRATION UTILITY - VERSION 1.4 #>
 using namespace System.Management.Automation.Host
 
 <# GENERAL VARIABLES #>
@@ -239,7 +239,7 @@ function Show-Menu {
     )
     Clear-Host
     Write-Host "================ $Title ================"
-    
+
     Write-Host "VCENTER AND VM LIST" -ForegroundColor DarkYellow -BackgroundColor Black
     Write-Host "1: Press '1' to connect to vCenter." -ForegroundColor DarkGreen -BackgroundColor Black
     Write-Host "2: Press '2' to disconnect from vCenter." -ForegroundColor DarkGreen -BackgroundColor Black
@@ -432,7 +432,7 @@ function Show-AdminShareStatus {
     }
 }
 
-function Get-LocationOfVMs {
+function Get-LocationOfVM {
     if (VMware.VimAutomation.Core\Get-VM -Name $VM -ErrorAction SilentlyContinue) {
         Write-Host "$VM exists in vCenter" -ForegroundColor DarkGreen -BackgroundColor Black
     } else {
@@ -745,7 +745,7 @@ function Test-ReachDomainDCIP {
     $SO.ScriptOutput
 }
 
-function Test-ADMTPorts {
+function Test-ADMTPort {
     $TargetVM = Read-Host -Prompt "Enter the name of the VM: "
     Write-Host "Checking ADMT-related ports from $TargetVM to $DCIP" -ForegroundColor DarkGreen -BackgroundColor Black
     $SO = Invoke-VMScript -VM ($TargetVM) -GuestCredential $GuestCreds -ScriptType Powershell -ScriptText $TestADMTPortsScript
@@ -830,38 +830,38 @@ function Show-BackupPolicySnapshotAll {
 
 function Set-BackupPolicy2Exclude {
     $TargetVM = Read-Host -Prompt "Enter the name of the VM: "
-    Write-Host "Setting VMs Backup Policy to Exclude" 
+    Write-Host "Setting VMs Backup Policy to Exclude"
     if ((Get-Annotation -Entity $TargetVM -CustomAttribute "BackupPolicy" | Select-Object -ExpandProperty Value) -ne "Exclude") {
             Write-Host "Setting Backup Policy on $TargetVM to Exclude" -ForegroundColor Blue -BackgroundColor Black
-            Set-Annotation -Entity $TargetVM -CustomAttribute "BackupPolicy" -Value "Exclude" 
+            Set-Annotation -Entity $TargetVM -CustomAttribute "BackupPolicy" -Value "Exclude"
         }
     Write-Host "Finished setting Backup Policy on $TargetVM" -ForegroundColor DarkGreen -BackgroundColor Black
 }
 
 function Set-BackupPolicy2ExcludeAll {
-    Write-Host "Setting VMs Backup Policy to Exclude" 
+    Write-Host "Setting VMs Backup Policy to Exclude"
     if ((Get-Annotation -Entity $VM -CustomAttribute "BackupPolicy" | Select-Object -ExpandProperty Value) -ne "Exclude") {
             Write-Host "Setting Backup Policy on $VM to Exclude" -ForegroundColor Blue -BackgroundColor Black
-            Set-Annotation -Entity $VM -CustomAttribute "BackupPolicy" -Value "Exclude" 
+            Set-Annotation -Entity $VM -CustomAttribute "BackupPolicy" -Value "Exclude"
         }
     Write-Host "Finished setting Backup Policy on $VM" -ForegroundColor DarkGreen -BackgroundColor Black
 }
 
 function Set-BackupPolicy2Snapshot {
     $TargetVM = Read-Host -Prompt "Enter the name of the VM: "
-    Write-Host "Setting VMs Backup Policy to Snapshot" 
+    Write-Host "Setting VMs Backup Policy to Snapshot"
     if ((Get-Annotation -Entity $TargetVM -CustomAttribute "BackupPolicy" | Select-Object -ExpandProperty Value) -ne "Snapshot") {
             Write-Host "Setting Backup Policy on $TargetVM to Snapshot" -ForegroundColor Blue -BackgroundColor Black
-            Set-Annotation -Entity $TargetVM -CustomAttribute "BackupPolicy" -Value "Snapshot" 
+            Set-Annotation -Entity $TargetVM -CustomAttribute "BackupPolicy" -Value "Snapshot"
         }
     Write-Host "Finished setting Backup Policy on $TargetVM" -ForegroundColor DarkGreen -BackgroundColor Black
 }
 
 function Set-BackupPolicy2SnapshotAll {
-    Write-Host "Setting VMs Backup Policy to Snapshot" 
+    Write-Host "Setting VMs Backup Policy to Snapshot"
     if ((Get-Annotation -Entity $VM -CustomAttribute "BackupPolicy" | Select-Object -ExpandProperty Value) -ne "Snapshot") {
             Write-Host "Setting Backup Policy on $VM to Snapshot" -ForegroundColor Blue -BackgroundColor Black
-            Set-Annotation -Entity $VM -CustomAttribute "BackupPolicy" -Value "Snapshot" 
+            Set-Annotation -Entity $VM -CustomAttribute "BackupPolicy" -Value "Snapshot"
         }
     Write-Host "Finished setting Backup Policy on $VM" -ForegroundColor DarkGreen -BackgroundColor Black
 }
@@ -1040,7 +1040,7 @@ do {
                 Get-LocationOfVMs
             }
         }
-       
+
         <# WINDOWS ADMIN ACCOUNTS #>
         '11a' {
             'Getting users in Admins group on specific VM...'

@@ -1,4 +1,4 @@
-function Import-Folders {
+﻿function Import-Folder {
   <#
   .SYNOPSIS
   Imports a csv file of folders into vCenter Server and creates them automatically.
@@ -26,7 +26,7 @@ function Import-Folders {
     $vmfolder = Import-Csv $filename | Sort-Object -Property Path
     If ($FolderType -eq "Yellow") {
       $type = "host"
-    } 
+    }
     Else {
       $type = "vm"
     }
@@ -35,7 +35,7 @@ function Import-Folders {
       $key = ($folder.Path -split "\\")[-2]
       if ($key -eq "vm") {
         Get-Datacenter $dc | Get-Folder $type | New-Folder -Name $folder.Name
-      } 
+      }
       Else {
         Get-Datacenter $dc | Get-Folder $type | Get-Folder $key | New-Folder -Name $folder.Name
       }

@@ -1,4 +1,4 @@
-function Resolve-VIInventoryEntity {
+﻿function Resolve-VIInventoryEntity {
     <#
     .SYNOPSIS
     Resolves a VIObject from inventory metadata saved in an export file.
@@ -35,7 +35,7 @@ function Resolve-VIInventoryEntity {
     }
 }
 
-function Import-Permissions {
+function Import-Permission {
     <#
     .SYNOPSIS
     Imports permissions from a CSV file by using current PowerCLI permission cmdlets.

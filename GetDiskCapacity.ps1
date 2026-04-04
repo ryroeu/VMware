@@ -1,4 +1,4 @@
-$FinalResult = @()
+﻿$FinalResult = @()
 $VMs = Get-View -ViewType "VirtualMachine" #-Filter @{"Runtime.PowerState"="PoweredOn"}
 foreach ($VM in $VMs){
     $totalCapacity = $totalFree = 0
@@ -25,4 +25,4 @@ foreach ($VM in $VMs){
     $object | Add-Member -MemberType NoteProperty -Name "PercentFree" -Value ("{0:P0}" -f ($totalFree/$totalCapacity))
     $finalResult += $object
 }
-$finalResult | Export-Csv .\DiskUsageReport.csv -NoTypeInformation -UseCulture 
+$finalResult | Export-Csv .\DiskUsageReport.csv -NoTypeInformation -UseCulture

@@ -1,4 +1,4 @@
-# Deploy Windows Server 2019/2022 in vCenter
+﻿# Deploy Windows Server 2019/2022 in vCenter
 #### USER DEFINED VARIABLES ############################################################################################
 $Domain = ""              #AD Domain to join
 $vCenterInstance = ""     #vCenter to deploy VM
@@ -23,7 +23,7 @@ Function Start-Customization([string] $VM){
 		$vmEvents = Get-VIEvent -Entity $VM
 		$startedEvent = $vmEvents | Where-Object {$_.GetType().Name -eq "CustomizationStartedEvent"}
 		if ($startedEvent){
-            Write-Host  "Customization for VM $VM has started" 
+            Write-Host  "Customization for VM $VM has started"
 			return $true
 		}
 		else{
@@ -35,20 +35,20 @@ Function Start-Customization([string] $VM){
     return $false
 }
 Function Stop-Customizaton([string] $VM){
-    Write-Host  "Verifying that Customization for VM $VM has finished" 
+    Write-Host  "Verifying that Customization for VM $VM has finished"
     $i = 60 #time-out of 5 min
 	while($true){
 		$vmEvents = Get-VIEvent -Entity $VM
 		$SucceededEvent = $vmEvents | Where-Object {$_.GetType().Name -eq "CustomizationSucceeded"}
         $FailureEvent = $vmEvents | Where-Object {$_.GetType().Name -eq "CustomizationFailed"}
 		if ($FailureEvent -or ($i -eq 0)){
-			Write-Warning  "Customization of VM $VM failed" 
+			Write-Warning  "Customization of VM $VM failed"
             return $False
 		}
 		if ($SucceededEvent){
-            Write-Host  "Customization of VM $VM Completed Successfully" 
+            Write-Host  "Customization of VM $VM Completed Successfully"
             Start-Sleep -Seconds 30
-            Write-Host  "Waiting for VM $VM to complete post-customization reboot" 
+            Write-Host  "Waiting for VM $VM to complete post-customization reboot"
             Wait-Tools -VM $VM -TimeoutSeconds 300
             Start-Sleep -Seconds 30
             return $true
@@ -59,7 +59,7 @@ Function Stop-Customizaton([string] $VM){
 }
 Function Restart-VM([string] $VM){
     Restart-VMGuest -VM $VM -Confirm:$false | Out-Null
-    Write-Host "Reboot VM $VM" 
+    Write-Host "Reboot VM $VM"
     Start-Sleep -Seconds 60
     Wait-Tools -VM $VM -TimeoutSeconds 300 | Out-Null
     Start-Sleep -Seconds 10
@@ -80,7 +80,7 @@ function Add-Script([string] $script,$parameters=@(),[bool] $reboot=$false){
 Function Test-IP([string] $IP){
     if (-not ($IP) -or (([bool]($IP -as [IPADDRESS])))){
         return $true
-    } 
+    }
     else{
         return $false
     }
@@ -126,12 +126,12 @@ Add-Script 'Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Termi
             Enable-NetFirewallRule -DisplayGroup "Remote Desktop";
             Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -name UserAuthentication -Value 0'
 ### DEPLOY VM ###############################################################################################################################################################
-Write-Host "Deploying Virtual Machine with Name: [$Hostname] using Template: [$SourceVMTemplate] and Customization Specification: [$SourceCustomSpec] on cluster: [$cluster]" 
+Write-Host "Deploying Virtual Machine with Name: [$Hostname] using Template: [$SourceVMTemplate] and Customization Specification: [$SourceCustomSpec] on cluster: [$cluster]"
 New-VM -Name $Hostname -Template $SourceVMTemplate -ResourcePool $cluster -OSCustomizationSpec $SourceCustomSpec -Location $Location -Datastore $Datastore -DiskStorageFormat $DiskStorageFormat | Out-Null
 Get-VM $Hostname | Get-NetworkAdapter | Set-NetworkAdapter -Portgroup $NetworkName -confirm:$false | Out-Null
 Set-VM -VM $Hostname -NumCpu $CPU -MemoryGB $Memory -Confirm:$false | Out-Null
 Get-VM $Hostname | Get-HardDisk | Where-Object {$_.Name -eq "Hard Disk 1"} | Set-HardDisk -CapacityGB $DiskCapacity -Confirm:$false | Out-Null
-Write-Host "Virtual Machine $Hostname Deployed. Powering On" 
+Write-Host "Virtual Machine $Hostname Deployed. Powering On"
 Start-VM -VM $Hostname | Out-Null
 if (-not (Start-Customization $Hostname)){break}; if (-not (Stop-Customizaton $Hostname)){break}
 foreach ($script in $scripts){

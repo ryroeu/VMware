@@ -1,5 +1,5 @@
-Get-Datastore | Select-Object `
-    @{N='Datastore';E={$script:p = [math]::Round(($_.CapacityGB - $_.FreeSpaceGB)/$_.CapacityGB*100,1) 
+﻿Get-Datastore | Select-Object `
+    @{N='Datastore';E={$script:p = [math]::Round(($_.CapacityGB - $_.FreeSpaceGB)/$_.CapacityGB*100,1)
         if ($p -lt 70){
             "#fg#$($_.Name)#fe#"
         }

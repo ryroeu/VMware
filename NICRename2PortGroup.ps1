@@ -1,6 +1,6 @@
-### will change the guest OS adapter name to correspond with the PortGroup the vNIC is connected to ###
+﻿### will change the guest OS adapter name to correspond with the PortGroup the vNIC is connected to ###
 $code = @'
-Get-NetAdapterHardwareInfo | Select-Object Name, Slot, @{N='Mac';E={Get-NetAdapter -Name $_.Name | Select-Object -ExpandProperty MacAddress}} | ConvertTo-Csv -NoTypeInformation -UseCulture 
+Get-NetAdapterHardwareInfo | Select-Object Name, Slot, @{N='Mac';E={Get-NetAdapter -Name $_.Name | Select-Object -ExpandProperty MacAddress}} | ConvertTo-Csv -NoTypeInformation -UseCulture
 '@
 $changeAdapterName = @'
 Rename-NetAdapter -Name '#oldname#' -NewName '#newname#' -Confirm:$false

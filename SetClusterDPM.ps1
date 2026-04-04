@@ -1,4 +1,4 @@
-function Set-DPM {
+﻿function Set-DPM {
     <#
     .SYNOPSIS
     Enables Distributed Power Management on a cluster
@@ -46,8 +46,8 @@ function Set-DPM {
         $clus.ReconfigureComputeResource_Task($spec, $true)
         $clus.UpdateViewData("ConfigurationEx")
         New-Object -TypeName PSObject -Property @{
-            Cluster = $clus.Name; 
-            DPMEnabled = $clus.ConfigurationEx.DpmConfigInfo.Enabled; 
+            Cluster = $clus.Name;
+            DPMEnabled = $clus.ConfigurationEx.DpmConfigInfo.Enabled;
             DefaultDpmBehavior = $clus.ConfigurationEx.DpmConfigInfo.DefaultDpmBehavior
         }
     }

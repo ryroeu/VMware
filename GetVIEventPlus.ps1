@@ -1,35 +1,35 @@
-function Get-VIEventPlus {
-    <#   
-        .SYNOPSIS  Returns vSphere events    
+﻿function Get-VIEventPlus {
+    <#
+        .SYNOPSIS  Returns vSphere events
         .DESCRIPTION The function will return vSphere events. With
         the available parameters, the execution time can be
-        improved, compered to the original Get-VIEvent cmdlet. 
-        .NOTES  Author:  Luc Dekens   
+        improved, compered to the original Get-VIEvent cmdlet.
+        .NOTES  Author:  Luc Dekens
         .PARAMETER Entity
         When specified the function returns events for the
         specific vSphere entity. By default events for all
-        vSphere entities are returned. 
+        vSphere entities are returned.
         .PARAMETER EventType
         This parameter limits the returned events to those
-        specified on this parameter. 
+        specified on this parameter.
         .PARAMETER Start
-        The start date of the events to retrieve 
+        The start date of the events to retrieve
         .PARAMETER Finish
-        The end date of the events to retrieve. 
+        The end date of the events to retrieve.
         .PARAMETER Recurse
         A switch indicating if the events for the children of
-        the Entity will also be returned 
+        the Entity will also be returned
         .PARAMETER User
-        The list of usernames for which events will be returned 
+        The list of usernames for which events will be returned
         .PARAMETER System
-        A switch that allows the selection of all system events. 
+        A switch that allows the selection of all system events.
         .PARAMETER ScheduledTask
         The name of a scheduled task for which the events
-        will be returned 
+        will be returned
         .PARAMETER FullMessage
         A switch indicating if the full message shall be compiled.
         This switch can improve the execution speed if the full
-        message is not needed.   
+        message is not needed.
         .EXAMPLE
         PS> Get-VIEventPlus -Entity $vm
         .EXAMPLE
@@ -95,35 +95,35 @@ function Get-VIEventPlus {
     }
 }
 function Get-MotionHistory {
-    <#   
-        .SYNOPSIS  Returns the vMotion/svMotion history    
+    <#
+        .SYNOPSIS  Returns the vMotion/svMotion history
         .DESCRIPTION The function will return information on all
         the vMotions and svMotions that occurred over a specific
-        interval for a defined number of virtual machines 
-        .NOTES  Author:  Luc Dekens   
+        interval for a defined number of virtual machines
+        .NOTES  Author:  Luc Dekens
         .PARAMETER Entity
         The vSphere entity. This can be one more virtual machines,
         or it can be a vSphere container. If the parameter is a
         container, the function will return the history for all the
-        virtual machines in that container. 
+        virtual machines in that container.
         .PARAMETER Days
         An integer that indicates over how many days in the past
-        the function should report on. 
+        the function should report on.
         .PARAMETER Hours
         An integer that indicates over how many hours in the past
-        the function should report on. 
+        the function should report on.
         .PARAMETER Minutes
         An integer that indicates over how many minutes in the past
-        the function should report on. 
+        the function should report on.
         .PARAMETER Sort
         An switch that indicates if the results should be returned
-        in chronological order. 
+        in chronological order.
         .EXAMPLE
         PS> Get-MotionHistory -Entity $vm -Days 1
         .EXAMPLE
         PS> Get-MotionHistory -Entity $cluster -Sort:$false
         .EXAMPLE
-        PS> Get-Datacenter -Name $dcName | 
+        PS> Get-Datacenter -Name $dcName |
         >> Get-MotionHistory -Days 7 -Sort:$false
     #>
     param(

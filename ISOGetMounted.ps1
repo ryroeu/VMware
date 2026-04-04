@@ -1,4 +1,4 @@
-$VMs = Get-VM 
+﻿$VMs = Get-VM
 foreach ($VM in $VMs) {
     $VMName = $VM.Name
     $CDDrive = $VM | Get-CDDrive

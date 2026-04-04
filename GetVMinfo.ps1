@@ -1,4 +1,4 @@
-Function Get-VMInformation {
+﻿Function Get-VMInformation {
     [CmdletBinding()]
     param(
         [Parameter(
@@ -8,7 +8,7 @@ Function Get-VMInformation {
 
         [Alias("VM")]
         [string[]]  $Name,
- 
+
         [Parameter(
             Position=1,
             ValueFromPipeline=$true,
@@ -22,21 +22,21 @@ Function Get-VMInformation {
         if (-not $Global:DefaultVIServer) {
             Write-Error "Unable to continue.  Please connect to a vCenter Server." -ErrorAction Stop
         }
- 
+
         #Verifying the object is a VM
         if ($PSBoundParameters.ContainsKey("Name")) {
             $InputObject = Get-VM $Name
         }
- 
+
         $i = 1
         $Count = $InputObject.Count
     }
- 
+
     PROCESS {
         if (($null -eq $InputObject.VMHost) -and ($null -eq $InputObject.MemoryGB)) {
             Write-Error "Invalid data type. A virtual machine object was not found" -ErrorAction:Continue
         }
- 
+
         foreach ($Object in $InputObject) {
             try {
                 $vCenter = $Object.Uid -replace ".+@"; $vCenter = $vCenter -replace ":.+"
@@ -56,10 +56,10 @@ Function Get-VMInformation {
                     MacAddress  = ($Object | Get-NetworkAdapter | Select-Object -ExpandProperty MacAddress) -join ', '
                     VMTools     = $Object.ExtensionData.Guest.ToolsVersionStatus2
                 }
- 
+
             } catch {
                 Write-Error $_.Exception.Message
- 
+
             } finally {
                 if ($PSBoundParameters.ContainsKey("Name")) {
                     $PercentComplete = ($i/$Count).ToString("P")

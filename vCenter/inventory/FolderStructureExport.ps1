@@ -1,4 +1,4 @@
-filter Get-FolderPath {
+﻿filter Get-FolderPath {
     <#
     .SYNOPSIS
     Collates the full folder Path
@@ -25,7 +25,7 @@ filter Get-FolderPath {
     }
 }
 ############################################################
-function Export-Folders {
+function Export-Folder {
     <#
     .SYNOPSIS
     Creates a csv file of folders in vCenter Server.
@@ -52,7 +52,7 @@ function Export-Folders {
     Process {
     ​   If ($Foldertype -eq "Yellow") {
             $type = "host"
-        } 
+        }
         Else {
             $type = "vm"
         }

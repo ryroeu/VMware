@@ -1,5 +1,5 @@
-#################### Variables ####################
-$VMs = 'NameofVM' 
+﻿#################### Variables ####################
+$VMs = 'NameofVM'
 $VHD = 'Hard disk 1'
 $IncreaseSpace = 20
 #################### Extend ####################
