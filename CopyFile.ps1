@@ -1,8 +1,14 @@
-$VMs       = Import-Csv .\VMList.csv
+$VMs = Import-Csv .\VMList.csv
 $GuestCred = Get-Credential -Message "Enter guest VM credentials"
+$PackageSourcePath = Join-Path $PSScriptRoot "Directory"
+$GuestDestinationPath = "C:\Directory\"
 
 function Copy-File {
+    if (-not (Test-Path -LiteralPath $PackageSourcePath)) {
+        throw "Package source path '$PackageSourcePath' does not exist."
+    }
+
     foreach ($VM in $VMs) {
-        Get-Item "C:\Directory\*" | Copy-VMGuestFile -Destination 'C:\Directory\' -VM $VM -LocalToGuest -GuestCredential $GuestCred -Confirm:$false
+        Get-ChildItem -Path $PackageSourcePath -Force | Copy-VMGuestFile -Destination $GuestDestinationPath -VM $VM -LocalToGuest -GuestCredential $GuestCred -Confirm:$false
     }
 }

@@ -1,77 +1,87 @@
-﻿Function Get-VMInformation {
+function Get-VMInformation {
     [CmdletBinding()]
     param(
         [Parameter(
             Position=0,
             ParameterSetName="NonPipeline"
         )]
-
         [Alias("VM")]
-        [string[]]  $Name,
+        [string[]]$Name,
 
         [Parameter(
             Position=1,
             ValueFromPipeline=$true,
             ValueFromPipelineByPropertyName=$true,
             ParameterSetName="Pipeline"
-            )]
-        [PSObject[]]  $InputObject
+        )]
+        [PSObject[]]$InputObject,
+
+        [Parameter(ParameterSetName="NonPipeline")]
+        [VMware.VimAutomation.ViCore.Types.V1.VIServer[]]$Server
     )
 
-    BEGIN {
-        if (-not $Global:DefaultVIServer) {
-            Write-Error "Unable to continue.  Please connect to a vCenter Server." -ErrorAction Stop
+    begin {
+        $defaultServers = Get-Variable -Name DefaultVIServers -Scope Global -ValueOnly -ErrorAction SilentlyContinue
+        $defaultServer = Get-Variable -Name DefaultVIServer -Scope Global -ValueOnly -ErrorAction SilentlyContinue
+        $connectedServers = @($defaultServers)
+        if (-not $connectedServers -and $defaultServer) {
+            $connectedServers = @($defaultServer)
         }
 
-        #Verifying the object is a VM
+        if (-not $connectedServers) {
+            Write-Error "Unable to continue. Please connect to one or more vCenter servers." -ErrorAction Stop
+        }
+
         if ($PSBoundParameters.ContainsKey("Name")) {
-            $InputObject = Get-VM $Name
+            if ($PSBoundParameters.ContainsKey("Server")) {
+                $InputObject = Get-VM -Name $Name -Server $Server
+            } else {
+                $InputObject = Get-VM -Name $Name
+            }
         }
 
         $i = 1
-        $Count = $InputObject.Count
+        $count = $InputObject.Count
     }
 
-    PROCESS {
+    process {
         if (($null -eq $InputObject.VMHost) -and ($null -eq $InputObject.MemoryGB)) {
-            Write-Error "Invalid data type. A virtual machine object was not found" -ErrorAction:Continue
+            Write-Error "Invalid data type. A virtual machine object was not found" -ErrorAction Continue
         }
 
-        foreach ($Object in $InputObject) {
+        foreach ($object in $InputObject) {
             try {
-                $vCenter = $Object.Uid -replace ".+@"; $vCenter = $vCenter -replace ":.+"
+                $vCenter = $object.Uid -replace ".+@"
+                $vCenter = $vCenter -replace ":.+", ""
                 [PSCustomObject]@{
-                    Name        = $Object.Name
-                    Domain      = $Object.ExtensionData.Guest.IpStack.DnsConfig.DomainName
-                    IPAddress   = ($Object.ExtensionData.Summary.Guest.IPAddress) -join ', '
-                    GuestOS     = $Object.ExtensionData.Config.GuestFullName
-                    PowerState  = $Object.PowerState
-                    Datacenter  = $Object.VMHost | Get-Datacenter | Select-Object -ExpandProperty Name
+                    Name        = $object.Name
+                    Domain      = $object.ExtensionData.Guest.IpStack.DnsConfig.DomainName
+                    IPAddress   = ($object.ExtensionData.Summary.Guest.IPAddress) -join ", "
+                    GuestOS     = $object.ExtensionData.Config.GuestFullName
+                    PowerState  = $object.PowerState
+                    Datacenter  = $object.VMHost | Get-Datacenter | Select-Object -ExpandProperty Name
                     vCenter     = $vCenter
-                    VMHost      = $Object.VMhost
-                    Cluster     = $Object.VMhost | Get-Cluster | Select-Object -ExpandProperty Name
-                    FolderName  = $Object.Folder
-                    Datastore   = ($Object | Get-Datastore | Select-Object -ExpandProperty Name) -join ', '
-                    NetworkName = ($Object | Get-NetworkAdapter | Select-Object -ExpandProperty NetworkName) -join ', '
-                    MacAddress  = ($Object | Get-NetworkAdapter | Select-Object -ExpandProperty MacAddress) -join ', '
-                    VMTools     = $Object.ExtensionData.Guest.ToolsVersionStatus2
+                    VMHost      = $object.VMHost
+                    Cluster     = $object.VMHost | Get-Cluster | Select-Object -ExpandProperty Name
+                    FolderName  = $object.Folder
+                    Datastore   = ($object | Get-Datastore | Select-Object -ExpandProperty Name) -join ", "
+                    NetworkName = ($object | Get-NetworkAdapter | Select-Object -ExpandProperty NetworkName) -join ", "
+                    MacAddress  = ($object | Get-NetworkAdapter | Select-Object -ExpandProperty MacAddress) -join ", "
+                    VMTools     = $object.ExtensionData.Guest.ToolsVersionStatus2
                 }
-
             } catch {
                 Write-Error $_.Exception.Message
-
             } finally {
                 if ($PSBoundParameters.ContainsKey("Name")) {
-                    $PercentComplete = ($i/$Count).ToString("P")
-                    Write-Progress -Activity "Processing VM: $($Object.Name)" -Status "$i/$count : $PercentComplete Complete" -PercentComplete $PercentComplete.Replace("%","")
+                    $percentComplete = ($i / $count).ToString("P")
+                    Write-Progress -Activity "Processing VM: $($object.Name)" -Status "$i/$count : $percentComplete Complete" -PercentComplete $percentComplete.Replace("%","")
                     $i++
                 } else {
-                    Write-Progress -Activity "Processing VM: $($Object.Name)" -Status "Completed: $i"
+                    Write-Progress -Activity "Processing VM: $($object.Name)" -Status "Completed: $i"
                     $i++
                 }
             }
         }
     }
-    END {}
 }
-#Get-VM | Get-VMInformation | Out-GridView
+# Get-VM | Get-VMInformation | Out-GridView
