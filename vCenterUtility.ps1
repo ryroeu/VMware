@@ -10,7 +10,6 @@ $DCIP = '10.10.10.30'
 $PrimaryDnsServer = '10.10.10.1'
 $SecondaryDnsServer = '10.10.10.2'
 $ServiceAccountMatch = 'svc startname'
-$PingDomain = "ping $Domain"
 $PingDC = "ping $DC.$Domain"
 $PingDCIP = "ping $DCIP"
 $UsersInGroup = @'
